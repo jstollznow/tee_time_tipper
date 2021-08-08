@@ -4,7 +4,6 @@ import pickle
 import os
 import errno
 import lxml
-import cchardet
 
 class GolfCourse:
     ROW_HEADING = "col-lg-8 col-md-4 col-sm-4 col-xs-4 row-heading"
