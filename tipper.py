@@ -38,28 +38,24 @@ def main():
 
     golfCourses = [moorePark, eastLake]
     print()
-    while 1:
-        print('Getting new tee times')
-        latestTeeTime = datetime.now()
-        latestTeeTime = latestTeeTime.replace(hour = 15, minute = 0, second = 0, microsecond = 0)
+    print('Getting new tee times')
+    latestTeeTime = datetime.now()
+    latestTeeTime = latestTeeTime.replace(hour = 15, minute = 0, second = 0, microsecond = 0)
 
-        new_tee_times_by_course = {}
-        t0 = time.time()
-        for golfCourse in golfCourses:
-            print(f'{golfCourse.name}')
-            new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_DAYS, MIN_SPOTS)
-            if len(new_tee_times) != 0:
-                print(f'New times at {golfCourse.name}')
-                new_tee_times_by_course[golfCourse.name] = new_tee_times
+    new_tee_times_by_course = {}
+    t0 = time.time()
+    for golfCourse in golfCourses:
+        print(f'{golfCourse.name}')
+        new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_DAYS, MIN_SPOTS)
+        if len(new_tee_times) != 0:
+            print(f'New times at {golfCourse.name}')
+            new_tee_times_by_course[golfCourse.name] = new_tee_times
 
-        if len(new_tee_times_by_course) != 0:
-            send_email(email_recipients, new_tee_times_by_course, password)
-        t1 = time.time()
-        print(f'Scrape took {t1-t0} seconds')
-        print()
-        dt = datetime.now() + timedelta(minutes=5)
-        while datetime.now() < dt:
-            time.sleep(1)
+    if len(new_tee_times_by_course) != 0:
+        send_email(email_recipients, new_tee_times_by_course, password)
+    t1 = time.time()
+    print(f'Scrape took {t1-t0} seconds')
+    print()
 
 def getInputEmails():
     email_recipients = []
