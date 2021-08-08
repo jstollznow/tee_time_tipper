@@ -11,14 +11,13 @@ class GolfCourse:
     TIME_HEADING = "h3"
     RECORDS_WRAPPER = "records-wrapper"
     AVAILABLE = "Available"
-    TAKEN = "Taken"
 
     def __init__(self, name, baseUrl, feeGroups) -> None:
         self.name = name
-        self.file_name = f"./cache/{name.lower().replace(' ', '_')}.pickle"
-        self.baseUrl = baseUrl
-        self.roundTypes = feeGroups
+        self.__file_name = f"./cache/{name.lower().replace(' ', '_')}.pickle"
         self.tee_times_by_date = self.__restore_times()
+        self.__baseUrl = baseUrl
+        self.__roundTypes = feeGroups
 
     def getNewTeeTimes(self, request_session, latest_tee_time, lookahead_days, min_spots):
         current_tee_times_by_date = {}
@@ -40,7 +39,7 @@ class GolfCourse:
 
     def __getTeeTimes(self, request_session, latest_tee_time, min_spots):
         tee_times = set()
-        for id, name in self.roundTypes.items():
+        for id, name in self.__roundTypes.items():
             soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, id), 'html.parser')
             for row in soup.find_all('div', {"class": "row row-time pm_row"}):
                 if (self.__getSpotsAvailable(row)):
@@ -51,18 +50,8 @@ class GolfCourse:
         return tee_times
 
     def __getContent(self, request_session, date, feeGroupId):
-        url = f"{self.baseUrl}&selectedDate={date.year}-{date.month:02d}-{date.day:02d}&feeGroupId={feeGroupId}"
+        url = f"{self.__baseUrl}&selectedDate={date.year}-{date.month:02d}-{date.day:02d}&feeGroupId={feeGroupId}"
         return request_session.get(url).text
-
-    def __isTeeTimeKnown(self, date, time_str):
-        return date in self.tee_times_by_date and time_str in self.tee_times_by_date[date]
-
-    def __sortedNewTeeTimes(self, date, currentTeeTimes):
-        new_tee_times = self.tee_times_by_date[date].symmetric_difference_update(currentTeeTimes)
-        if new_tee_times is not None:
-            return sorted(new_tee_times)
-
-        return new_tee_times
 
     def __getTeeTime(self, row):
         timeDiv = row.find("div", {"class": self.ROW_HEADING}).find('div', {"class": self.ROW_WRAPPER}).find('div', {"class": self.ROW_WRAPPER_TIME})
@@ -77,19 +66,19 @@ class GolfCourse:
         return spotsAvailable
 
     def __restore_times(self):
-        if not os.path.exists(self.file_name):
+        if not os.path.exists(self.__file_name):
             return {} 
-        with open(self.file_name, 'rb') as f:
+        with open(self.__file_name, 'rb') as f:
             return pickle.load(f)
         
     def __save_times(self, current_tee_times_by_date):
-        if not os.path.exists(os.path.dirname(self.file_name)):
+        if not os.path.exists(os.path.dirname(self.__file_name)):
             try:
-                os.makedirs(os.path.dirname(self.file_name))
+                os.makedirs(os.path.dirname(self.__file_name))
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
 
         self.tee_times_by_date = current_tee_times_by_date
-        with open(self.file_name, 'wb') as f:
+        with open(self.__file_name, 'wb') as f:
             pickle.dump(self.tee_times_by_date, f)

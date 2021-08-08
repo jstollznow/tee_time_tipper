@@ -2,15 +2,23 @@ from emailSender import send_email
 import requests
 from datetime import datetime, timedelta
 import time
+import getpass
+import sys
+import re
 
 from golfCourse import GolfCourse
 
 LOOKAHEAD_DAYS = 40
 MIN_SPOTS = 2
 
+# for validating an Email
+EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
 def main():
-    
+    password = getpass.getpass()
     requests_session = requests.session()
+
+    email_recipients = getInputEmails()
 
     mooreParkFeeGroups = {
         1501385381: "18 Holes",
@@ -28,28 +36,38 @@ def main():
     }
     eastLake = GolfCourse("East Lake", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
 
-    latestTeeTime = datetime.now()
-    latestTeeTime = latestTeeTime.replace(hour = 14, minute = 0, second = 0, microsecond= 0)
-
     golfCourses = [moorePark, eastLake]
 
     while 1:
         print('Getting new tee times')
+        latestTeeTime = datetime.now()
+        latestTeeTime = latestTeeTime.replace(hour = 14, minute = 0, second = 0, microsecond = 0)
+
         new_tee_times_by_course = {}
         t0 = time.time()
         for golfCourse in golfCourses:
+            print(f'{golfCourse.name}')
             new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_DAYS, MIN_SPOTS)
             if len(new_tee_times) != 0:
                 print(f'New times at {golfCourse.name}')
                 new_tee_times_by_course[golfCourse.name] = new_tee_times
+
         if len(new_tee_times_by_course) != 0:
-            send_email('jstollznow12@gmail.com', new_tee_times_by_course)
+            send_email(email_recipients, new_tee_times_by_course, password)
         t1 = time.time()
-        print(f'Scrap took {t1-t0} seconds')
+        print(f'Scrape took {t1-t0} seconds')
         print()
         print()
         dt = datetime.now() + timedelta(minutes=5)
         while datetime.now() < dt:
             time.sleep(1)
-        
+
+def getInputEmails():
+    email_recipients = []
+    for pos in range(1, len(sys.argv)):
+        if re.match(EMAIL_REGEX, sys.argv[pos]):
+            email_recipients.append(sys.argv[pos])
+    print('Email Recipients:')
+    print(email_recipients)
+    return email_recipients
 main()

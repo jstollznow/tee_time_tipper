@@ -4,9 +4,8 @@ port = 465  # For SSL
 smtp_server = "smtp.gmail.com"
 
 
-def send_email(recipient_email, new_tee_times):
+def send_email(recipient_emails, new_tee_times, password):
     sender_email = "teetimetipper@gmail.com"
-    password = 'golfrus3355'
     message = f"""Subject: New Tee Times
 
 Hi Lucky Recipient,
@@ -21,7 +20,7 @@ Tee Time Tipper."""
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
         server.login(sender_email, password)
-        server.sendmail(sender_email, recipient_email, message)
+        server.sendmail(sender_email, recipient_emails, message)
 
 
 def format_tee_times(new_tee_times):
