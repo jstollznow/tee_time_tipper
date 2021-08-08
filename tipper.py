@@ -37,11 +37,11 @@ def main():
     eastLake = GolfCourse("East Lake", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
 
     golfCourses = [moorePark, eastLake]
-
+    print()
     while 1:
         print('Getting new tee times')
         latestTeeTime = datetime.now()
-        latestTeeTime = latestTeeTime.replace(hour = 14, minute = 0, second = 0, microsecond = 0)
+        latestTeeTime = latestTeeTime.replace(hour = 15, minute = 0, second = 0, microsecond = 0)
 
         new_tee_times_by_course = {}
         t0 = time.time()
@@ -56,7 +56,6 @@ def main():
             send_email(email_recipients, new_tee_times_by_course, password)
         t1 = time.time()
         print(f'Scrape took {t1-t0} seconds')
-        print()
         print()
         dt = datetime.now() + timedelta(minutes=5)
         while datetime.now() < dt:
