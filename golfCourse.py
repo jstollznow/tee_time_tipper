@@ -3,6 +3,8 @@ from datetime import timedelta, datetime
 import pickle
 import os
 import errno
+import lxml
+import cchardet
 
 class GolfCourse:
     ROW_HEADING = "col-lg-8 col-md-4 col-sm-4 col-xs-4 row-heading"
@@ -37,7 +39,7 @@ class GolfCourse:
         new_tee_times_by_date = {}
         for _ in range(lookahead_days):
             current_round_tee_times = self.__getTeeTimes(request_session, latest_tee_time, min_spots, round_id)
-            if (len(current_round_tee_times) > 0):
+            if len(current_round_tee_times) > 0:
                 current_tee_times_by_date[latest_tee_time.date()] = current_round_tee_times
                 if not round_name in self.tee_times_by_date or not latest_tee_time.date() in self.tee_times_by_date[round_name]:
                     new_tee_times_by_date[latest_tee_time.date()] = sorted(current_round_tee_times)
@@ -51,7 +53,7 @@ class GolfCourse:
 
     def __getTeeTimes(self, request_session, latest_tee_time, min_spots, round_id):
         tee_times = set()
-        soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, round_id), 'html.parser')
+        soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, round_id), 'lxml')
         for row in soup.find_all('div', {"class": "row row-time pm_row"}):
             if (self.__getSpotsAvailable(row) >= min_spots):
                 tee_time = self.__getTeeTime(row)
