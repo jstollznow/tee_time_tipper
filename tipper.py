@@ -15,7 +15,7 @@ MIN_SPOTS = 2
 EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
 def main():
-    password = getpass.getpass()
+    password = sys.argv[1]
     requests_session = requests.session()
 
     email_recipients = getInputEmails()
@@ -59,7 +59,7 @@ def main():
 
 def getInputEmails():
     email_recipients = []
-    for pos in range(1, len(sys.argv)):
+    for pos in range(2, len(sys.argv)):
         if re.match(EMAIL_REGEX, sys.argv[pos]):
             email_recipients.append(sys.argv[pos])
     print('Email Recipients:')
