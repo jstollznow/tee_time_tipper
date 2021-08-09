@@ -39,8 +39,8 @@ def main():
     golfCourses = [moorePark, eastLake]
     print()
     print('Getting new tee times')
-    latestTeeTime = datetime.now()
-    latestTeeTime = latestTeeTime.replace(hour = 15, minute = 0, second = 0, microsecond = 0)
+    print(datetime.now())
+    latestTeeTime = datetime.now().replace(hour = 15, minute = 0, second = 0, microsecond = 0)
 
     new_tee_times_by_course = {}
     t0 = time.time()
