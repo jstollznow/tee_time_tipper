@@ -1,13 +1,14 @@
 import smtplib, ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from programArgs import getArgs
 
 port = 465  # For SSL
 smtp_server = "smtp.gmail.com"
 tab = '&nbsp;&nbsp;&nbsp;&nbsp;'
 
 
-def send_email(recipient_emails, new_tee_times, password, local):
+def send_email(recipient_emails, new_tee_times, password):
     sender_email = "teetimetipper@gmail.com"
     msg = MIMEMultipart('alternative')
     msg["Subject"] = "New Tee Times"
@@ -25,7 +26,7 @@ def send_email(recipient_emails, new_tee_times, password, local):
     """
     msg.attach(MIMEText(html, 'html'))
     context = ssl.create_default_context()
-    if local:
+    if getArgs().local:
         printEmailAsText(html)
     else:
         with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:

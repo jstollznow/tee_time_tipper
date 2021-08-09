@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from datetime import timedelta, datetime
+from programArgs import getArgs
 import pickle
 import os
 import errno
@@ -13,10 +14,10 @@ class GolfCourse:
     RECORDS_WRAPPER = "records-wrapper"
     AVAILABLE = "Available"
 
-    def __init__(self, name, baseUrl, feeGroups, ignore_cache) -> None:
+    def __init__(self, name, baseUrl, feeGroups) -> None:
         self.name = name
         self.__file_name = os.path.join(os.path.dirname(__file__), f"./cache/{name.lower().replace(' ', '_')}.pickle")
-        self.tee_times_by_date = self.__restore_times(ignore_cache)
+        self.tee_times_by_date = self.__restore_times()
         self.__baseUrl = baseUrl
         self.__roundTypes = feeGroups
 
@@ -80,8 +81,8 @@ class GolfCourse:
         
         return spotsAvailable
 
-    def __restore_times(self, ignore_cache):
-        if not os.path.exists(self.__file_name) or ignore_cache:
+    def __restore_times(self):
+        if not os.path.exists(self.__file_name) or getArgs().no_cache:
             return {} 
         with open(self.__file_name, 'rb') as f:
             return pickle.load(f)
