@@ -9,7 +9,11 @@ tab = '&nbsp;&nbsp;&nbsp;&nbsp;'
 
 
 def send_email(recipient_emails, new_tee_times, password):
-    sender_email = "teetimetipper@gmail.com"
+    if getArgs().sender is not None :
+        sender_email = getArgs().sender
+    else:
+        sender_email = "teetimetipper@gmail.com"
+
     msg = MIMEMultipart('alternative')
     msg["Subject"] = "New Tee Times"
     msg["From"] = sender_email

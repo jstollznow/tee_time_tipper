@@ -59,12 +59,13 @@ def main():
     print()
 
 def getInputEmails():
-    email_recipients = []
-    for pos in range(2, len(sys.argv)):
-        if re.match(EMAIL_REGEX, sys.argv[pos]):
-            email_recipients.append(sys.argv[pos])
+    input_emails = getArgs().email_recipients
+    validated_email_recipients = []
+    for pos in range(0, len(input_emails)):
+        if re.match(EMAIL_REGEX, input_emails[pos]):
+            validated_email_recipients.append(input_emails[pos])
     print('Email Recipients:')
-    print(email_recipients)
-    return email_recipients
+    print(validated_email_recipients)
+    return validated_email_recipients
     
 main()
