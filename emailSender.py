@@ -12,7 +12,6 @@ def send_email(recipient_emails, new_tee_times, password):
     msg = MIMEMultipart('alternative')
     msg["Subject"] = "New Tee Times"
     msg["From"] = sender_email
-    msg["To"] = ', '.join(recipient_emails)
     html = f"""<html>
 <body>
     <p>Hi lucky recipient,<br><br>
