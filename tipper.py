@@ -1,4 +1,5 @@
 from emailSender import send_email
+from programArgs import getArgs
 import requests
 from datetime import datetime, timedelta
 import time
@@ -15,7 +16,7 @@ MIN_SPOTS = 2
 EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
 def main():
-    password = sys.argv[1]
+    password = getArgs().pwd
     requests_session = requests.session()
 
     email_recipients = getInputEmails()
@@ -58,11 +59,13 @@ def main():
     print()
 
 def getInputEmails():
-    email_recipients = []
-    for pos in range(2, len(sys.argv)):
-        if re.match(EMAIL_REGEX, sys.argv[pos]):
-            email_recipients.append(sys.argv[pos])
+    input_emails = getArgs().email_recipients
+    validated_email_recipients = []
+    for pos in range(0, len(input_emails)):
+        if re.match(EMAIL_REGEX, input_emails[pos]):
+            validated_email_recipients.append(input_emails[pos])
     print('Email Recipients:')
-    print(email_recipients)
-    return email_recipients
+    print(validated_email_recipients)
+    return validated_email_recipients
+    
 main()

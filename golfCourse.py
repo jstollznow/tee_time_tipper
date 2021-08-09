@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from datetime import timedelta, datetime
+from programArgs import getArgs
 import pickle
 import os
 import errno
@@ -81,7 +82,7 @@ class GolfCourse:
         return spotsAvailable
 
     def __restore_times(self):
-        if not os.path.exists(self.__file_name):
+        if not os.path.exists(self.__file_name) or getArgs().no_cache:
             return {} 
         with open(self.__file_name, 'rb') as f:
             return pickle.load(f)
