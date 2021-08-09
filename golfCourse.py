@@ -15,7 +15,7 @@ class GolfCourse:
 
     def __init__(self, name, baseUrl, feeGroups) -> None:
         self.name = name
-        self.__file_name = f"./cache/{name.lower().replace(' ', '_')}.pickle"
+        self.__file_name = os.path.join(os.path.dirname(__file__), f"./cache/{name.lower().replace(' ', '_')}.pickle")
         self.tee_times_by_date = self.__restore_times()
         self.__baseUrl = baseUrl
         self.__roundTypes = feeGroups
