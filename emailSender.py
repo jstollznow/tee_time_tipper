@@ -7,7 +7,7 @@ smtp_server = "smtp.gmail.com"
 tab = '&nbsp;&nbsp;&nbsp;&nbsp;'
 
 
-def send_email(recipient_emails, new_tee_times, password):
+def send_email(recipient_emails, new_tee_times, password, local):
     sender_email = "teetimetipper@gmail.com"
     msg = MIMEMultipart('alternative')
     msg["Subject"] = "New Tee Times"
@@ -25,9 +25,12 @@ def send_email(recipient_emails, new_tee_times, password):
     """
     msg.attach(MIMEText(html, 'html'))
     context = ssl.create_default_context()
-    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-        server.login(sender_email, password)
-        server.sendmail(sender_email, recipient_emails, msg.as_string())
+    if local:
+        printEmailAsText(html)
+    else:
+        with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, recipient_emails, msg.as_string())
 
 
 def format_tee_times(new_tee_times):
@@ -42,3 +45,10 @@ def format_tee_times(new_tee_times):
                     tee_times_str += tab + tab + tab + tee_time + '<br>'
 
     return tee_times_str
+
+def printEmailAsText(emailBody):
+    # Make html a bit more readable
+    emailBody = emailBody.replace('&nbsp;', ' ')
+    emailBody = emailBody.replace('<br>', '\n')
+
+    print(emailBody)

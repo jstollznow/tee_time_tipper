@@ -1,3 +1,4 @@
+import argparse
 from emailSender import send_email
 import requests
 from datetime import datetime, timedelta
@@ -15,7 +16,10 @@ MIN_SPOTS = 2
 EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
 def main():
-    password = sys.argv[1]
+    arg_parser = init_argparse()
+    args = arg_parser.parse_args()
+
+    password = args.pwd
     requests_session = requests.session()
 
     email_recipients = getInputEmails()
@@ -25,7 +29,7 @@ def main():
         1501796650: "Twilight",
         1501386657: "Front 10"
     }
-    moorePark = GolfCourse("Moore Park", "https://moorepark.miclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3050007", mooreParkFeeGroups)
+    moorePark = GolfCourse("Moore Park", "https://moorepark.miclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3050007", mooreParkFeeGroups, args.no_cache)
 
     eastLakeFeeGroups = {
         10230951: "Mon - Fri (before 1pm)",
@@ -34,7 +38,7 @@ def main():
         2251832: "Weekend (1pm - 2pm)",
         10230962: "Sundowner (after 2pm)"
     }
-    eastLake = GolfCourse("East Lake", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
+    eastLake = GolfCourse("East Lake", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups, args.no_cache)
 
     golfCourses = [moorePark, eastLake]
     print()
@@ -52,10 +56,23 @@ def main():
             new_tee_times_by_course[golfCourse.name] = new_tee_times
 
     if len(new_tee_times_by_course) != 0:
-        send_email(email_recipients, new_tee_times_by_course, password)
+        send_email(email_recipients, new_tee_times_by_course, password, args.local)
     t1 = time.time()
     print(f'Scrape took {t1-t0} seconds')
     print()
+
+def init_argparse() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-p','--pwd', help="Password for sending tipper email.")
+    parser.add_argument("email_recipients", nargs='*');
+
+    # Dev flags
+    parser.add_argument(
+        "-l", "--local", action="store_true", help="If enabled, prints email to terminal instead of sending.")
+    parser.add_argument("--no_cache",  action="store_true", help="If enabled, ignores cache of perviously seen times when generating tee times")
+
+    return parser
 
 def getInputEmails():
     email_recipients = []
@@ -65,4 +82,5 @@ def getInputEmails():
     print('Email Recipients:')
     print(email_recipients)
     return email_recipients
+    
 main()
