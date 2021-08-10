@@ -8,6 +8,9 @@ def init_argparse() -> argparse.ArgumentParser:
     parser.add_argument('-p','--pwd', help="Password for sending tipper email.")
     parser.add_argument("email_recipients", nargs='*');
 
+    # Feature flags
+    parser.add_argument("--email_template",  action="store_true", help="If enabled, use jinja email templating.")
+
     # Dev flags
     parser.add_argument(
         "-l", "--local", action="store_true", help="If enabled, prints email to terminal instead of sending.")

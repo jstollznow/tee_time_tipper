@@ -1,0 +1,36 @@
+<html>
+
+<body>
+    Hi lucky recipient,<br><br>
+    The following new tee times are now available:<br><br>
+
+    {% for course, rounds in tee_times.items() %}
+    <h2>Course: {{course}}</h2>
+    <table>
+        {% for round, dates in rounds.items() %}
+        <tr>
+            <td>
+                <h3>{{round}}</h3>
+            </td>
+        </tr>
+        {% for date, times in dates.items() %}
+        <tr>
+            <td><b>{{date}}</b></td>
+        </tr>
+        {% for time in times %}
+        <tr>
+            <td></td>
+            <td>{{time}}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+        {% endfor %}
+    </table>
+    {% endfor %}
+
+    Thanks, <br>
+    Tee Time Tipper.
+    </p>
+</body>
+
+</html>
