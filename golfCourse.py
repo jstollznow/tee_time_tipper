@@ -1,10 +1,12 @@
 from bs4 import BeautifulSoup
 from datetime import timedelta, datetime
-from programArgs import getArgs
+from bs4.element import SoupStrainer
 import pickle
 import os
 import errno
 import lxml
+
+from programArgs import getArgs
 
 class GolfCourse:
     ROW_HEADING = "col-lg-8 col-md-4 col-sm-4 col-xs-4 row-heading"
@@ -34,10 +36,13 @@ class GolfCourse:
         self.__save_times(current_tee_times_by_round)
         return new_tee_times_by_round
 
-    def __getTeeTimesForRoundType(self, round_name, round_id, request_session, latest_tee_time, min_spots, lookahead_days):
+    def __getTeeTimesForRoundType(self, round_name, round_id, request_session, latest_tee_time, min_spots, lookahead_weekends):
         current_tee_times_by_date = {}
         new_tee_times_by_date = {}
-        for _ in range(lookahead_days):
+        if (latest_tee_time.weekday() < 5):
+            latest_tee_time += timedelta(days= 5 - latest_tee_time.weekday())
+
+        for _ in range(lookahead_weekends * 2):
             current_round_tee_times = self.__getTeeTimes(request_session, latest_tee_time, min_spots, round_id)
             if len(current_round_tee_times) > 0:
                 current_tee_times_by_date[latest_tee_time.date()] = current_round_tee_times
@@ -47,18 +52,24 @@ class GolfCourse:
                     new_tee_times = current_round_tee_times - self.tee_times_by_date[round_name][latest_tee_time.date()]
                     if len(new_tee_times) > 0:
                         new_tee_times_by_date[latest_tee_time.date()] = sorted(new_tee_times)
-            latest_tee_time += timedelta(days=1)
+            if (latest_tee_time.weekday() == 5):
+                latest_tee_time += timedelta(1)
+            else: 
+                latest_tee_time += timedelta(6)
 
         return (current_tee_times_by_date, new_tee_times_by_date)
 
     def __getTeeTimes(self, request_session, latest_tee_time, min_spots, round_id):
         tee_times = set()
-        soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, round_id), 'lxml')
+        strainer = SoupStrainer('div', attrs={'class': 'row-wrapper'})
+        soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, round_id), 'lxml', parse_only=strainer)
         for row in soup.find_all('div', {"class": "row row-time pm_row"}):
-            if (self.__getSpotsAvailable(row) >= min_spots):
-                tee_time = self.__getTeeTime(row)
-                if (tee_time.time() <= latest_tee_time.time()):
+            tee_time = self.__getTeeTime(row)
+            if (tee_time.time() <= latest_tee_time.time()):
+                if (self.__getSpotsAvailable(row) >= min_spots):
                     tee_times.add(tee_time.strftime('%I:%M %p'))
+            else:
+                break
                 
         return tee_times
 

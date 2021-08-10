@@ -1,15 +1,14 @@
+import requests
+from datetime import datetime
+import time
+import re
+import cProfile
+
 from emailSender import send_email
 from programArgs import getArgs
-import requests
-from datetime import datetime, timedelta
-import time
-import getpass
-import sys
-import re
-
 from golfCourse import GolfCourse
 
-LOOKAHEAD_DAYS = 40
+LOOKAHEAD_WEEKS = 10
 MIN_SPOTS = 2
 
 # for validating an Email
@@ -26,7 +25,7 @@ def main():
         1501796650: "Twilight",
         1501386657: "Front 10"
     }
-    moorePark = GolfCourse("Moore Park", "https://moorepark.miclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3050007", mooreParkFeeGroups)
+    moorePark = GolfCourse("Moore Park Golf Club", "https://moorepark.miclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3050007", mooreParkFeeGroups)
 
     eastLakeFeeGroups = {
         10230951: "Mon - Fri (before 1pm)",
@@ -35,7 +34,7 @@ def main():
         2251832: "Weekend (1pm - 2pm)",
         10230962: "Sundowner (after 2pm)"
     }
-    eastLake = GolfCourse("East Lake", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
+    eastLake = GolfCourse("East Lake Golf Club", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
 
     golfCourses = [moorePark, eastLake]
     print()
@@ -47,7 +46,7 @@ def main():
     t0 = time.time()
     for golfCourse in golfCourses:
         print(f'{golfCourse.name}')
-        new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_DAYS, MIN_SPOTS)
+        new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_WEEKS, MIN_SPOTS)
         if len(new_tee_times) != 0:
             print(f'New times at {golfCourse.name}')
             new_tee_times_by_course[golfCourse.name] = new_tee_times
@@ -68,4 +67,5 @@ def getInputEmails():
     print(validated_email_recipients)
     return validated_email_recipients
     
-main()
+# main()
+cProfile.run('main()')

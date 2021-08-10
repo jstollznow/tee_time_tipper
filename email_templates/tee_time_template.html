@@ -3,9 +3,9 @@
 <body>
     Hi lucky recipient,<br><br>
     The following new tee times are now available:<br><br>
-
+    <h1>Weekends Only Edition</h1>
     {% for course, rounds in tee_times.items() %}
-    <h2>Course: {{course}}</h2>
+    <h2>{{course}}</h2>
     <table>
         {% for round, dates in rounds.items() %}
         <tr>
@@ -15,7 +15,7 @@
         </tr>
         {% for date, times in dates.items() %}
         <tr>
-            <td><b>{{date}}</b></td>
+            <td><b>{{date.strftime('%A %x')}}</b></td>
         </tr>
         {% for time in times %}
         <tr>
