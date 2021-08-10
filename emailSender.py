@@ -1,4 +1,5 @@
 import smtplib, ssl
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -10,8 +11,7 @@ smtp_server = "smtp.gmail.com"
 tab = '&nbsp;&nbsp;&nbsp;&nbsp;'
 
 env = Environment(
-    loader=FileSystemLoader('email_templates'),
-    autoescape=select_autoescape(['html', 'xml'])
+    loader = FileSystemLoader(searchpath= os.path.join(os.path.dirname(__file__),'./email_templates'))
 )
 
 def send_email(recipient_emails, new_tee_times, password):
