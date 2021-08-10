@@ -67,5 +67,4 @@ def getInputEmails():
     print(validated_email_recipients)
     return validated_email_recipients
     
-# main()
-cProfile.run('main()')
+main()
