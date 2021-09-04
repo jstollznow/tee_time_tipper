@@ -1,70 +1,69 @@
 import requests
-from datetime import datetime
+from datetime import date, datetime
 import time
 import re
+import json
 import cProfile
 
-from emailSender import send_email
-from programArgs import getArgs
-from golfCourse import GolfCourse
-
-LOOKAHEAD_WEEKS = 10
-MIN_SPOTS = 2
+from email_sender import send_tee_time_email
+from program_args import get_args
+from golf_course import GolfCourse
 
 # for validating an Email
 EMAIL_REGEX = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
 def main():
-    password = getArgs().pwd
+    with open(get_args().course_config_path) as f:
+        tipper_config = json.load(f)
+
+    password = tipper_config['password']
     requests_session = requests.session()
 
-    email_recipients = getInputEmails()
+    email_recipients = get_input_emails(tipper_config['recipients'])
 
-    mooreParkFeeGroups = {
-        1501385381: "18 Holes",
-        1501796650: "Twilight",
-        1501386657: "Front 10"
-    }
-    moorePark = GolfCourse("Moore Park Golf Club", "https://moorepark.miclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3050007", mooreParkFeeGroups)
+    golf_courses = []
 
-    eastLakeFeeGroups = {
-        10230951: "Mon - Fri (before 1pm)",
-        10230959: "Mon - Fri (1pm - 2pm)",
-        9270388: "Weekend (before 1pm)",
-        2251832: "Weekend (1pm - 2pm)",
-        10230962: "Sundowner (after 2pm)"
-    }
-    eastLake = GolfCourse("East Lake Golf Club", "https://www.eastlakegolfclub.com.au/guests/bookings/ViewPublicTimesheet.msp?bookingResourceId=3000000", eastLakeFeeGroups)
+    GolfCourse.set_scraping_details(tipper_config['xml_objects'], tipper_config['endpoints'])
 
-    golfCourses = [moorePark, eastLake]
-    print()
+    for course_config in tipper_config['golf_courses']:
+        golf_courses.append(GolfCourse(course_config))
+        print(golf_courses[-1])
+
     print('Getting new tee times')
     print(datetime.now())
-    latestTeeTime = datetime.now().replace(hour = 15, minute = 0, second = 0, microsecond = 0)
+    weekday_cut_time = datetime.strptime(tipper_config['weekday_cut'], '%I:%M%p')
+    weekend_cut_time = datetime.strptime(tipper_config['weekend_cut'], '%I:%M%p')
+
+    latestTeeTime = datetime.combine(datetime.now(), weekend_cut_time.time())
+
+    print(latestTeeTime)
 
     new_tee_times_by_course = {}
     t0 = time.time()
-    for golfCourse in golfCourses:
-        print(f'{golfCourse.name}')
-        new_tee_times = golfCourse.getNewTeeTimes(requests_session, latestTeeTime, LOOKAHEAD_WEEKS, MIN_SPOTS)
-        if len(new_tee_times) != 0:
-            print(f'New times at {golfCourse.name}')
-            new_tee_times_by_course[golfCourse.name] = new_tee_times
 
-    if len(new_tee_times_by_course) != 0:
-        send_email(email_recipients, new_tee_times_by_course, password)
+    for golf_course in golf_courses:
+        print(f'{golf_course.name}')
+        new_tee_times = golf_course.get_new_tee_times(requests_session, latestTeeTime, tipper_config['lookahead_days'], tipper_config['min_spots'])
+        if new_tee_times:
+            print(f'New times at {golf_course.name}')
+            new_tee_times_by_course[golf_course.name] = new_tee_times
+
+    if new_tee_times_by_course:
+        send_tee_time_email(tipper_config['sender_email'], email_recipients, new_tee_times_by_course, password)
+
     t1 = time.time()
     print(f'Scrape took {t1-t0} seconds')
     print()
 
-def getInputEmails():
-    input_emails = getArgs().email_recipients
+def get_input_emails(input_emails):
     validated_email_recipients = []
     for pos in range(0, len(input_emails)):
         if re.match(EMAIL_REGEX, input_emails[pos]):
             validated_email_recipients.append(input_emails[pos])
-    print('Email Recipients:')
-    print(validated_email_recipients)
+
+    if validated_email_recipients:
+        print('Email Recipients:')
+        print(validated_email_recipients)
     return validated_email_recipients
-    
+
 main()
