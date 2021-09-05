@@ -44,10 +44,10 @@ class GolfCourse:
 
     def __str__(self):
         print_str = '\nName: ' + self.name + '\nFileName: ' + self.__file_name \
-            + '\nBaseUrl: ' + self.__base_url + '\nRound Types: '
+            + '\nBaseUrl: ' + self.__base_url
 
         if self.__roundTypes:
-            print_str += '\n\t'
+            print_str += '\nRound Types:\n\t'
             print_str += '\n\t'.join(str(x) for x in self.__roundTypes.values())
             print_str += '\n'
 
