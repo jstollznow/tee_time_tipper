@@ -34,16 +34,12 @@ def main():
     weekday_cut_time = datetime.strptime(tipper_config['weekday_cut'], '%I:%M%p')
     weekend_cut_time = datetime.strptime(tipper_config['weekend_cut'], '%I:%M%p')
 
-    latestTeeTime = datetime.combine(datetime.now(), weekend_cut_time.time())
-
-    print(latestTeeTime)
-
     new_tee_times_by_course = {}
     t0 = time.time()
 
     for golf_course in golf_courses:
         print(f'{golf_course.name}')
-        new_tee_times = golf_course.get_new_tee_times(requests_session, latestTeeTime, tipper_config['lookahead_days'], tipper_config['min_spots'])
+        new_tee_times = golf_course.get_new_tee_times(requests_session, weekday_cut_time, weekend_cut_time, tipper_config['min_spots'])
         if new_tee_times:
             print(f'New times at {golf_course.name}')
             new_tee_times_by_course[golf_course.name] = new_tee_times

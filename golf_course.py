@@ -1,5 +1,6 @@
+import json
 from bs4 import BeautifulSoup
-from datetime import timedelta, datetime
+from datetime import date, timedelta, datetime
 from bs4.element import SoupStrainer
 import pickle
 import os
@@ -23,9 +24,12 @@ class GolfCourse:
     def __init__(self, course_config) -> None:
         self.name = course_config['name']
         self.id = course_config['course_id']
-        self.__file_name = os.path.join(os.path.dirname(__file__), "cache", f"{self.name.lower().replace(' ', '_')}.pickle")
+        self.__cache_path = os.path.join(os.path.dirname(__file__), "cache", f"{self.name.lower().replace(' ', '_')}.pickle")
+        self.__booking_ids_path = os.path.join(os.path.dirname(__file__), "booking_ids", f"{self.name.lower().replace(' ', '_')}.json")
         self.tee_times_by_date = self.__restore_times()
         self.__base_url = course_config['url']
+        self.__lookahead_days = course_config.get('lookahead_days', 14)
+        self.__booking_ids = self.__restore_ids()
         self.__roundTypes = {}
         for fee_group_config in course_config['fee_groups']:
             fee_group = GolfRoundType(fee_group_config)
@@ -43,8 +47,8 @@ class GolfCourse:
         GolfCourse.CHECKOUT_ENDPOINT = endpoints_config['checkout']
 
     def __str__(self):
-        print_str = '\nName: ' + self.name + '\nFileName: ' + self.__file_name \
-            + '\nBaseUrl: ' + self.__base_url
+        print_str = '\nName: ' + self.name + '\nFileName: ' + self.__cache_path \
+            + '\nBaseUrl: ' + self.__base_url + '\nLookahead Days: ' + str(self.__lookahead_days)
 
         if self.__roundTypes:
             print_str += '\nRound Types:\n\t'
@@ -53,26 +57,32 @@ class GolfCourse:
 
         return print_str
 
-    def get_new_tee_times(self, request_session, latest_tee_time, lookahead_days, min_spots):
+    def get_new_tee_times(self, request_session, weekday_cut_time, weekend_cut_time, min_spots):
         current_tee_times_by_round = {}
         new_tee_times_by_round = {}
         for (round_id, round_name) in self.__roundTypes.items():
             print(f'Getting {round_name} Tee Times')
-            (current_tee_times_by_date, new_tee_times_by_date) = self.__getTeeTimesForRoundType(round_name, round_id, request_session, latest_tee_time, min_spots, lookahead_days)
+            (current_tee_times_by_date, new_tee_times_by_date) = self.__getTeeTimesForRoundType(round_name, round_id, request_session, weekday_cut_time, weekend_cut_time, min_spots)
             if len(current_tee_times_by_date) != 0:
                 current_tee_times_by_round[round_name] = current_tee_times_by_date
             if len(new_tee_times_by_date) != 0:
                 new_tee_times_by_round[round_name] = new_tee_times_by_date
         self.__save_times(current_tee_times_by_round)
+        self.__save_booking_ids()
         return new_tee_times_by_round
 
-    def __getTeeTimesForRoundType(self, round_name, round_id, request_session, latest_tee_time, min_spots, lookahead_weekends):
+    def __getTeeTimesForRoundType(self, round_name, round_id, request_session, weekday_cut_time, weekend_cut_time, min_spots):
         current_tee_times_by_date = {}
         new_tee_times_by_date = {}
-        # if (latest_tee_time.weekday() < 5):
-        #     latest_tee_time += timedelta(days= 5 - latest_tee_time.weekday())
 
-        for _ in range(lookahead_weekends):
+        latest_tee_time = datetime.now()
+
+        for i in range(self.__lookahead_days + 1):
+            if latest_tee_time.weekday() < 5:
+                latest_tee_time = datetime.combine(latest_tee_time, weekday_cut_time.time())
+            else:
+                latest_tee_time = datetime.combine(latest_tee_time, weekend_cut_time.time())
+
             current_round_tee_times = self.__getTeeTimes(request_session, latest_tee_time, min_spots, round_id)
             if len(current_round_tee_times) > 0:
                 current_tee_times_by_date[latest_tee_time.date()] = current_round_tee_times
@@ -82,10 +92,7 @@ class GolfCourse:
                     new_tee_times = current_round_tee_times - self.tee_times_by_date[round_name][latest_tee_time.date()]
                     if len(new_tee_times) > 0:
                         new_tee_times_by_date[latest_tee_time.date()] = sorted(new_tee_times)
-            if (latest_tee_time.weekday() == 5):
-                latest_tee_time += timedelta(1)
-            else:
-                latest_tee_time += timedelta(1)
+            latest_tee_time += timedelta(1)
 
         return (current_tee_times_by_date, new_tee_times_by_date)
 
@@ -95,6 +102,7 @@ class GolfCourse:
         soup = BeautifulSoup(self.__getContent(request_session, latest_tee_time, round_id), 'lxml', parse_only=strainer)
         for row in soup.find_all('div', GolfCourse.TEE_TIME_OBJECT):
             tee_time = self.__getTeeTime(row)
+            self.__booking_ids[row.get('id')[4:]] = str(datetime.combine(latest_tee_time.date(), tee_time.time()))
             if (tee_time.time() <= latest_tee_time.time()):
                 if (self.__getSpotsAvailable(row) >= min_spots):
                     tee_times.add(tee_time.strftime('%I:%M %p'))
@@ -122,19 +130,36 @@ class GolfCourse:
         return spotsAvailable
 
     def __restore_times(self):
-        if not os.path.exists(self.__file_name) or get_args().no_cache:
+        if not os.path.exists(self.__cache_path) or get_args().no_cache:
             return {}
-        with open(self.__file_name, 'rb') as f:
+        with open(self.__cache_path, 'rb') as f:
             return pickle.load(f)
 
     def __save_times(self, current_tee_times_by_date):
-        if not os.path.exists(os.path.dirname(self.__file_name)):
+        if not os.path.exists(os.path.dirname(self.__cache_path)):
             try:
-                os.makedirs(os.path.dirname(self.__file_name))
+                os.makedirs(os.path.dirname(self.__cache_path))
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
 
         self.tee_times_by_date = current_tee_times_by_date
-        with open(self.__file_name, 'wb') as f:
+        with open(self.__cache_path, 'wb') as f:
             pickle.dump(self.tee_times_by_date, f)
+
+    def __save_booking_ids(self):
+        if not os.path.exists(os.path.dirname(self.__booking_ids_path)):
+            try:
+                os.makedirs(os.path.dirname(self.__booking_ids_path))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+
+        with open(self.__booking_ids_path, 'w') as f:
+            json.dump(self.__booking_ids, f)
+
+    def __restore_ids(self):
+        if not os.path.exists(self.__booking_ids_path):
+            return {}
+        with open(self.__booking_ids_path, 'r') as f:
+            return json.load(f)
