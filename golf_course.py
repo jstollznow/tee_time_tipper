@@ -9,7 +9,7 @@ import lxml
 import re
 
 from program_args import get_args
-from golf_round_type import GolfRoundType
+from golf_round_type import GolfRoundType, RoundTimeOfWeek
 
 class GolfCourse:
     TEE_TIMES_LIST = ''
@@ -33,7 +33,7 @@ class GolfCourse:
         self.__roundTypes = {}
         for fee_group_config in course_config['fee_groups']:
             fee_group = GolfRoundType(fee_group_config)
-            self.__roundTypes[fee_group.round_type_id] = fee_group
+            self.__roundTypes[fee_group.id] = fee_group
 
     @staticmethod
     def set_scraping_details(xml_config, endpoints_config):
@@ -60,36 +60,38 @@ class GolfCourse:
     def get_new_tee_times(self, request_session, weekday_cut_time, weekend_cut_time, min_spots):
         current_tee_times_by_round = {}
         new_tee_times_by_round = {}
-        for (round_id, round_name) in self.__roundTypes.items():
-            print(f'Getting {round_name} Tee Times')
-            (current_tee_times_by_date, new_tee_times_by_date) = self.__getTeeTimesForRoundType(round_name, round_id, request_session, weekday_cut_time, weekend_cut_time, min_spots)
+        for round in self.__roundTypes.values():
+            print(f'Getting {round.name} Tee Times')
+            (current_tee_times_by_date, new_tee_times_by_date) = self.__getTeeTimesForRoundType(round, request_session, weekday_cut_time, weekend_cut_time, min_spots)
             if len(current_tee_times_by_date) != 0:
-                current_tee_times_by_round[round_name] = current_tee_times_by_date
+                current_tee_times_by_round[round.name] = current_tee_times_by_date
             if len(new_tee_times_by_date) != 0:
-                new_tee_times_by_round[round_name] = new_tee_times_by_date
+                new_tee_times_by_round[round.name] = new_tee_times_by_date
         self.__save_times(current_tee_times_by_round)
         self.__save_booking_ids()
         return new_tee_times_by_round
 
-    def __getTeeTimesForRoundType(self, round_name, round_id, request_session, weekday_cut_time, weekend_cut_time, min_spots):
+    def __getTeeTimesForRoundType(self, round, request_session, weekday_cut_time, weekend_cut_time, min_spots):
         current_tee_times_by_date = {}
         new_tee_times_by_date = {}
 
         latest_tee_time = datetime.now()
 
         for i in range(self.__lookahead_days + 1):
-            if latest_tee_time.weekday() < 5:
+            if latest_tee_time.weekday() < 5 and round.type is not RoundTimeOfWeek.weekend:
                 latest_tee_time = datetime.combine(latest_tee_time, weekday_cut_time.time())
-            else:
+            elif latest_tee_time.weekday() >= 5 and round.type is not RoundTimeOfWeek.weekday:
                 latest_tee_time = datetime.combine(latest_tee_time, weekend_cut_time.time())
-
-            current_round_tee_times = self.__getTeeTimes(request_session, latest_tee_time, min_spots, round_id)
+            else:
+                latest_tee_time += timedelta(1)
+                continue
+            current_round_tee_times = self.__getTeeTimes(request_session, latest_tee_time, min_spots, round.id)
             if len(current_round_tee_times) > 0:
                 current_tee_times_by_date[latest_tee_time.date()] = current_round_tee_times
-                if not round_name in self.tee_times_by_date or not latest_tee_time.date() in self.tee_times_by_date[round_name]:
+                if not round.name in self.tee_times_by_date or not latest_tee_time.date() in self.tee_times_by_date[round.name]:
                     new_tee_times_by_date[latest_tee_time.date()] = sorted(current_round_tee_times)
                 else:
-                    new_tee_times = current_round_tee_times - self.tee_times_by_date[round_name][latest_tee_time.date()]
+                    new_tee_times = current_round_tee_times - self.tee_times_by_date[round.name][latest_tee_time.date()]
                     if len(new_tee_times) > 0:
                         new_tee_times_by_date[latest_tee_time.date()] = sorted(new_tee_times)
             latest_tee_time += timedelta(1)
@@ -103,8 +105,8 @@ class GolfCourse:
         for row in soup.find_all('div', GolfCourse.TEE_TIME_OBJECT):
             tee_time = self.__getTeeTime(row)
             self.__booking_ids[row.get('id')[4:]] = str(datetime.combine(latest_tee_time.date(), tee_time.time()))
-            if (tee_time.time() <= latest_tee_time.time()):
-                if (self.__getSpotsAvailable(row) >= min_spots):
+            if tee_time.time() <= latest_tee_time.time():
+                if self.__getSpotsAvailable(row) >= min_spots:
                     tee_times.add(tee_time.strftime('%I:%M %p'))
             else:
                 break
@@ -123,10 +125,7 @@ class GolfCourse:
         return time
 
     def __getSpotsAvailable(self, row):
-        spotsAvailable = 0
-        for spot in row.find_all("div", GolfCourse.AVAILABLE_SLOT):
-            # print(spot.get('id'))
-            spotsAvailable += 1
+        spotsAvailable = len(row.find_all("div", GolfCourse.AVAILABLE_SLOT))
         return spotsAvailable
 
     def __restore_times(self):

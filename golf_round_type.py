@@ -1,13 +1,15 @@
 from enum import Enum
 
+class RoundTimeOfWeek(Enum):
+    all = 0
+    weekend = 1
+    weekday = 2
 
 class GolfRoundType:
     def __init__(self, round_type_config) -> None:
-        self.round_type_id = round_type_config['id']
+        self.id = round_type_config['id']
         self.name = round_type_config['name']
-        self.type = round_type_config['type']
+        self.type = RoundTimeOfWeek[round_type_config.get('type', 'all').lower()]
 
     def __str__(self):
-        # return 'Name: ' + self.name + ', Round Type Id: ' + self.round_type_id \
-        #     + ', Round Type: ' + self.type
         return str(vars(self))

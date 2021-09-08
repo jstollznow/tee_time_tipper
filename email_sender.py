@@ -1,45 +1,39 @@
 import smtplib, ssl
 import os
+import webbrowser
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+import time
 
-import webbrowser
+class EmailSender:
+    def __init__(self, sender_email, password):
+        self.__port = 465  # For SSL
+        self.__smtp_server = "smtp.gmail.com"
+        self.__context = ssl.create_default_context()
+        self.__sender_email = sender_email
+        self.__password = password
 
-from program_args import get_args
+    def send_email(self, recipient_emails, body, subject):
+        msg = MIMEMultipart('alternative')
+        msg["Subject"] = subject
+        msg["From"] = self.__sender_email
+        html = body
+        msg.attach(MIMEText(html, 'html'))
 
-port = 465  # For SSL
-smtp_server = "smtp.gmail.com"
-tab = '&nbsp;&nbsp;&nbsp;&nbsp;'
+        with smtplib.SMTP_SSL(self.__smtp_server, self.__port, context=self.__context) as server:
+            server.login(self.__sender_email, self.__password)
+            server.sendmail(self.__sender_email, recipient_emails, msg.as_string())
 
-env = Environment(
-    loader = FileSystemLoader(searchpath= os.path.join(os.path.dirname(__file__),'./email_templates'))
-)
+class MockSender(EmailSender):
+    def __init__(self):
+        super().__init__('', '')
 
-def send_tee_time_email(sender_email, recipient_emails, new_tee_times, password):
-    body = __generate_email_body(new_tee_times)
-    if get_args().local:
-        __print_email_as_text(body)
-        return
-
-    msg = MIMEMultipart('alternative')
-    msg["Subject"] = "New Tee Times"
-    msg["From"] = sender_email
-    html = body
-    msg.attach(MIMEText(html, 'html'))
-    context = ssl.create_default_context()
-
-    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-        server.login(sender_email, password)
-        server.sendmail(sender_email, recipient_emails, msg.as_string())
-
-def __print_email_as_text(emailBody):
-    # Make html a bit more readable
-    emailBody = emailBody.replace('&nbsp;', ' ')
-    emailBody = emailBody.replace('<br>', '\n')
-
-    print(emailBody)
-
-def __generate_email_body(tee_times):
-    template = env.get_template('new_tee_times_template.html')
-    return template.render(tee_times=tee_times)
+    def send_email(self, recipient_emails, body, subject):
+        temp_file_path = os.path.join(os.path.dirname(__file__),'email_output.html')
+        with open(temp_file_path, 'w') as f:
+            f.write(f"To: {', '.join(recipient_emails)}<br><br>")
+            f.write(f"Subject: {subject}<br><br><br>")
+            f.write(body)
+        webbrowser.open(f"file://{temp_file_path}")
+        time.sleep(0.5)
+        os.remove(temp_file_path)
