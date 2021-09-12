@@ -1,3 +1,4 @@
+from tipper_scraper import TipperScraper
 import requests
 from datetime import datetime
 import time
@@ -18,8 +19,12 @@ def main():
 
     GolfCourse.set_scraping_details(tipper_config['xml_objects'], tipper_config['endpoints'])
 
+    TipperScraper.set_scraping_details(tipper_config['xml_objects'], tipper_config['endpoints'])
+
+    tipper_scraper = TipperScraper()
+
     for course_config in tipper_config['golf_courses']:
-        golf_courses.append(GolfCourse(course_config))
+        golf_courses.append(GolfCourse(course_config, tipper_scraper))
 
     print('Getting new tee times')
     print(datetime.now())
