@@ -1,9 +1,7 @@
 from tipper_scraper import TipperScraper
-import requests
 from datetime import datetime
 import time
 import json
-import cProfile
 
 from email_manager import EmailManager
 from program_args import get_args
@@ -13,18 +11,13 @@ def main():
     with open(get_args().course_config_path) as f:
         tipper_config = json.load(f)
 
-    requests_session = requests.session()
+    GolfCourse.set_endpoint_formats(tipper_config['endpoints'])
+    TipperScraper.set_scraping_details(tipper_config['xml_objects'])
 
     golf_courses = []
 
-    GolfCourse.set_scraping_details(tipper_config['xml_objects'], tipper_config['endpoints'])
-
-    TipperScraper.set_scraping_details(tipper_config['xml_objects'], tipper_config['endpoints'])
-
-    tipper_scraper = TipperScraper()
-
     for course_config in tipper_config['golf_courses']:
-        golf_courses.append(GolfCourse(course_config, tipper_scraper))
+        golf_courses.append(GolfCourse(course_config))
 
     print('Getting new tee times')
     print(datetime.now())
@@ -36,7 +29,7 @@ def main():
 
     for golf_course in golf_courses:
         print(f'{golf_course.name}')
-        new_tee_times = golf_course.get_new_tee_times(requests_session, weekday_cut_time, weekend_cut_time, tipper_config['min_spots'])
+        new_tee_times = golf_course.get_new_tee_times(weekday_cut_time, weekend_cut_time, tipper_config['min_spots'])
         if new_tee_times:
             print(f'New times at {golf_course.name}')
             new_tee_times_by_course[golf_course.name] = new_tee_times
