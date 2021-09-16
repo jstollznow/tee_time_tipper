@@ -21,12 +21,14 @@ class GolfCourse:
         self.__cache_path = os.path.join(os.path.dirname(__file__), "cache", f"{self.name.lower().replace(' ', '_')}.json")
         self.__booking_ids_path = os.path.join(os.path.dirname(__file__), "booking_ids", f"{self.name.lower().replace(' ', '_')}.json")
         self.__base_url = course_config['url']
-        self.__base_timetable_url = self.__get_base_timetable_url()
+        self.checkout_url = self.__base_url + self.CHECKOUT_ENDPOINT
         self.__lookahead_days = course_config.get('lookahead_days', 14)
         self.__roundTypes = {}
 
+        base_timetable_url = self.__get_base_timetable_url()
+        base_add_to_cart_url = self.__base_url + self.ADD_TO_CART_ENDPOINT
         for fee_group_config in course_config['fee_groups']:
-            round = GolfRoundType(fee_group_config, self.__base_timetable_url)
+            round = GolfRoundType(fee_group_config, base_timetable_url, base_add_to_cart_url)
             self.__roundTypes[round.id] = round
 
         self.deserialize(self.__load_json_from_path(self.__cache_path))

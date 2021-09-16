@@ -2,23 +2,32 @@
     <body>
         Hi lucky recipient,<br><br>
         The following new tee times are now available:<br><br>
-        {% for course, rounds in tee_times.items() %}
-        <h2>{{course}}</h2>
+        {% for course_name, rounds in tee_times.items() %}
+        <h2><a href={{courses[course_name].checkout_url}}>{{course_name}}</a></h2>
         <table>
-            {% for round, dates in rounds.items() %}
+            {% for round_type_name, dates in rounds.items() %}
             <tr>
                 <td>
-                    <h3>{{round}}</h3>
+                    <h3>{{round_type_name}}</h3>
                 </td>
             </tr>
-            {% for date, times in dates.items() %}
+            {% for date, tee_time_groups in dates.items() %}
             <tr>
-                <td><b>{{date.strftime('%A %d/%m/%Y')}}</b></td>
+                <td>
+                    <b>
+                        {{date.strftime('%A %d/%m/%Y')}}
+                    </b>
+                </td>
             </tr>
-            {% for time in times %}
+            {% for tee_time_group in tee_time_groups %}
             <tr>
                 <td></td>
-                <td>{{time}}</td>
+                <td>
+                    {{tee_time_group.get_time_str()}}&nbsp;
+                    {% for num_golfers, url in tee_time_group.add_to_cart_urls.items() %}
+                    <a href={{url}}>{{num_golfers}}</a>&nbsp;
+                    {% endfor %}
+                </td>
             </tr>
             {% endfor %}
             {% endfor %}

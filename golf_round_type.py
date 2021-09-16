@@ -19,13 +19,14 @@ class GolfRoundType:
         'sunday': 6
     }
 
-    def __init__(self, round_type_config, base_booking_url) -> None:
+    def __init__(self, round_type_config, base_booking_url, base_add_to_cart_url) -> None:
         self.id = round_type_config['id']
         self.name = round_type_config['name']
         self.type = RoundTimeOfWeek[round_type_config.get('type', 'all').lower()]
         self.round_fee_ids = [None for _ in range(7)]
         self.__initialize_booking_ids(round_type_config['round_fee_ids'])
         self.__base_booking_url = base_booking_url.format("{}", self.id)
+        self.__base_add_to_cart_url = base_add_to_cart_url.format("{}", self.id, "{}")
         self.__tee_times_by_date = {}
         self.booking_ids = {}
 
@@ -34,7 +35,7 @@ class GolfRoundType:
             tee_groups = set()
             date = datetime.strptime(date_str, '%x').date()
             for tee_group_data in tee_groups_data:
-                tee_groups.add(TeeTimeGroup.deserialize(tee_group_data))
+                tee_groups.add(TeeTimeGroup.deserialize(tee_group_data, self.__base_add_to_cart_url, self.round_fee_ids[date.weekday()]))
             self.__tee_times_by_date[date] = tee_groups
 
     def serialize(self):
@@ -53,9 +54,9 @@ class GolfRoundType:
         for latest_tee_time in self.__get_lookahead_cutoff_times(weekday_cut_time, weekend_cut_time, lookahead_days):
             date_str = f'{latest_tee_time.year}-{latest_tee_time.month:02d}-{latest_tee_time.day:02d}'
             undecorated_booking_ids = {}
-            tee_times_for_day = TipperScraper.get_tee_times_for_date(self.__base_booking_url.format(date_str), latest_tee_time, min_spots, undecorated_booking_ids)
-
-            if tee_times_for_day:
+            tee_times_data = TipperScraper.get_tee_times_for_date(self.__base_booking_url.format(date_str), latest_tee_time, min_spots, undecorated_booking_ids)
+            if tee_times_data:
+                tee_times_for_day = self.__decorate_tee_time_data(tee_times_data)
                 new_tee_times = tee_times_for_day - self.__tee_times_by_date.get(latest_tee_time.date(), set())
                 if new_tee_times:
                     new_tee_times_for_period[latest_tee_time.date()] = sorted(new_tee_times, key=lambda x: x.time)
@@ -64,6 +65,15 @@ class GolfRoundType:
             self.__decorate_and_add_to_booking_ids(undecorated_booking_ids)
 
         return new_tee_times_for_period
+
+    def __decorate_tee_time_data(self, tee_times_data):
+        tee_time_groups = set()
+        for tee_time_data in tee_times_data:
+            tee_time_groups.add(self.__create_tee_time_group(tee_time_data['group_id'], tee_time_data['slots'], tee_time_data['tee_time']))
+        return tee_time_groups
+
+    def __create_tee_time_group(self, id, slots, time):
+        return TeeTimeGroup(id, slots, time, self.__base_add_to_cart_url, self.round_fee_ids[time.weekday()])
 
     def __decorate_and_add_to_booking_ids(self, undecorated_booking_pairings):
         for booking_id, booking_time in undecorated_booking_pairings.items():
