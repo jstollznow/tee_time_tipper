@@ -1,15 +1,16 @@
 import argparse
+from typing import Optional
 
-args = None
+args: Optional[argparse.Namespace] = None
 
 def get_args():
     global args
     if args is None:
-        args = __init_argparse().parse_args()
+        args = _init_argparse().parse_args()
     return args
 
-def __init_argparse() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
+def _init_argparse() -> argparse.ArgumentParser:
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
 
     parser.add_argument('-f','--front_run', action="store_true", help="If enabled, send email with unreleased tee times for next tee time release (course specific).", default = False)
     parser.add_argument('-c', '--course_config_path', help='Set the course config path.', required=True)
