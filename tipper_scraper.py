@@ -42,8 +42,6 @@ class TipperScraper:
                         'slots': slots,
                         'tee_time': tee_time
                     })
-            else:
-                break
 
         return tee_times
 
